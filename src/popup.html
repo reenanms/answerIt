@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AnswerIt</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body class="popup-body">
+
+  <header class="popup-header">
+    <span class="popup-icon">🤖</span>
+    <h1>AnswerIt</h1>
+  </header>
+
+  <main class="popup-main">
+
+    <!-- API Key Section -->
+    <section class="form-section">
+      <label for="apiKey" class="form-label">Google AI Studio API Key</label>
+      <div class="input-row">
+        <input type="password" id="apiKey" class="form-input" placeholder="AIza..." autocomplete="off"
+          spellcheck="false" />
+        <button id="toggleApiKey" class="icon-btn" title="Show/Hide key" aria-label="Toggle key visibility">👁️</button>
+      </div>
+    </section>
+
+    <!-- Selector Config Section -->
+    <section class="form-section">
+      <label for="selectorConfig" class="form-label">
+        DOM Selector Config
+        <span class="label-hint">(JSON)</span>
+      </label>
+      <textarea id="selectorConfig" class="form-textarea" rows="7" placeholder='{
+  "name": "McGraw-Hill Default",
+  "selectors": {
+    "question": ".question-content, .q-text",
+    "options": ".answer-option, .choice-label",
+    "container": ".question-wrapper"
+  }
+}' spellcheck="false"></textarea>
+    </section>
+
+    <!-- Actions -->
+    <div class="btn-group">
+      <button id="saveBtn" class="btn btn-secondary">💾 Save Settings</button>
+      <button id="solveBtn" class="btn btn-primary">⚡ Solve Question</button>
+    </div>
+
+    <!-- Status Message -->
+    <div id="statusMsg" class="status-msg" aria-live="polite"></div>
+
+  </main>
+
+  <footer class="popup-footer">
+    Powered by <strong>Gemini 2.0 Flash</strong>
+  </footer>
+
+  <script src="popup.js"></script>
+</body>
+
+</html>
