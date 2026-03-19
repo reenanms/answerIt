@@ -4,9 +4,8 @@ const BASE_URL =
   'https://generativelanguage.googleapis.com/v1beta/models';
 
 // Model waterfall: try each in order until one succeeds.
-// gemini-1.5-flash has the most free-tier headroom.
 const MODEL_WATERFALL = [
-  'gemini-3-flash-preview',
+  'gemini-3.1-flash-lite-preview',
   'gemini-2.5-flash'
 ];
 
