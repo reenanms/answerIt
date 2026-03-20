@@ -15,6 +15,15 @@
   "background": {
     "service_worker": "background.js"
   },
+  "commands": {
+    "solve-question": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+S",
+        "mac": "Command+Shift+S"
+      },
+      "description": "Trigger the 'Solve Question' action"
+    }
+  },
   "action": {
     "default_popup": "popup.html",
     "default_title": "AnswerIt"

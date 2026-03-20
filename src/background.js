@@ -111,3 +111,24 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return true; // keep channel open for async response
   }
 });
+
+// Listen for keyboard shortcuts
+chrome.commands.onCommand.addListener(async (command) => {
+  if (command === 'solve-question') {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab?.id) return;
+
+    try {
+      // Inject the content script dynamically (works on any tab via scripting API)
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: ['content.js']
+      });
+    } catch {
+      // Content script may already be injected — that's fine
+    }
+
+    // Send trigger message to the content script
+    chrome.tabs.sendMessage(tab.id, { type: 'TRIGGER_SOLVE' });
+  }
+});

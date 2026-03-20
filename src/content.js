@@ -103,6 +103,8 @@ function highlightAnswer(optionEls, answer) {
 // ─── Main Solve Logic ─────────────────────────────────────────────────────────
 
 async function solveQuestion() {
+  showToast('Solving question...', 'loading');
+
   const config = await getConfig();
   const { question: qSel, options: optSel } = config.selectors;
 
@@ -110,7 +112,9 @@ async function solveQuestion() {
   const questionEl = document.querySelector(qSel);
   if (!questionEl) {
     console.warn('[AnswerIt] Question element not found. Selector:', qSel);
-    return { success: false, error: 'Question element not found on this page.' };
+    const err = 'Question element not found on this page.';
+    showToast(err, 'error');
+    return { success: false, error: err };
   }
   const questionText = questionEl.innerText.trim();
 
@@ -130,7 +134,9 @@ async function solveQuestion() {
   );
 
   if (!apiKey) {
-    return { success: false, error: 'API key not set. Please configure it in the extension popup.' };
+    const err = 'API key not set. Please configure it in the extension popup.';
+    showToast(err, 'error');
+    return { success: false, error: err };
   }
 
   // Ask background script to call Gemini
@@ -143,7 +149,9 @@ async function solveQuestion() {
 
   if (!response?.success) {
     console.error('[AnswerIt] AI error:', response?.error);
-    return { success: false, error: response?.error ?? 'Unknown AI error.' };
+    const err = response?.error ?? 'Unknown AI error.';
+    showToast(err, 'error');
+    return { success: false, error: err };
   }
 
   const answer = response.answer;
@@ -152,23 +160,40 @@ async function solveQuestion() {
   const matched = highlightAnswer(optionEls, answer);
 
   // Show an on-page toast with the answer
-  showToast(answer, matched);
+  showToast(answer, 'success', matched);
 
   return { success: true, answer };
 }
 
 // ─── Toast Notification ───────────────────────────────────────────────────────
 
-function showToast(message, matched) {
+function showToast(message, type = 'success', matched = false) {
   // Remove existing toast if any
   const existing = document.getElementById('ai-solver-toast');
   if (existing) existing.remove();
 
   const toast = document.createElement('div');
   toast.id = 'ai-solver-toast';
-  toast.textContent = matched
-    ? `✅ Answer: ${message}`
-    : `💡 AI Answer: ${message}`;
+
+  let bg = '#1a1a2e';
+  let border = '#00FF00';
+  let prefix = '';
+
+  if (type === 'loading') {
+    prefix = '⏳ ';
+    bg = '#222222';
+    border = '#007BFF';
+  } else if (type === 'error') {
+    prefix = '❌ Error: ';
+    bg = '#3d1010';
+    border = '#FF3333';
+  } else if (type === 'success') {
+    prefix = matched ? '✅ Answer: ' : '💡 AI Answer: ';
+    bg = matched ? '#1a1a2e' : '#2d1b00';
+    border = matched ? '#00FF00' : '#FFA500';
+  }
+
+  toast.textContent = `${prefix}${message}`;
 
   Object.assign(toast.style, {
     position: 'fixed',
@@ -177,9 +202,9 @@ function showToast(message, matched) {
     zIndex: '2147483647',
     maxWidth: '420px',
     padding: '14px 18px',
-    background: matched ? '#1a1a2e' : '#2d1b00',
+    background: bg,
     color: '#fff',
-    border: `2px solid ${matched ? '#00FF00' : '#FFA500'}`,
+    border: `2px solid ${border}`,
     borderRadius: '10px',
     fontSize: '14px',
     fontFamily: 'system-ui, sans-serif',
@@ -190,11 +215,13 @@ function showToast(message, matched) {
 
   document.body.appendChild(toast);
 
-  // Auto-dismiss after 8 seconds
-  setTimeout(() => {
-    toast.style.opacity = '0';
-    setTimeout(() => toast.remove(), 400);
-  }, 8000);
+  // Auto-dismiss after 8 seconds, except for loading which stays until replaced
+  if (type !== 'loading') {
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      setTimeout(() => toast.remove(), 400);
+    }, 8000);
+  }
 }
 
 // ─── Message Listener ─────────────────────────────────────────────────────────
@@ -205,6 +232,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       .then(sendResponse)
       .catch((err) => {
         console.error('[AnswerIt] Unexpected error:', err);
+        showToast(err.message || String(err), 'error');
         sendResponse({ success: false, error: err.message });
       });
     return true; // keep channel open
