@@ -23,9 +23,9 @@ async function getConfig() {
         config = {
           name: 'McGraw-Hill Default',
           selectors: {
-            question: '.question-content, .q-text',
-            options: '.answer-option, .choice-label',
-            container: '.question-wrapper'
+            question: '.prompt, .question-content, .q-text',
+            options: '.choice-row, .match-row, .choice-item-wrapper, .answer-option, .choice-label',
+            container: '.probe-container, .question-wrapper'
           }
         };
       }
@@ -36,7 +36,7 @@ async function getConfig() {
 
 /**
  * Detect the question format based on available DOM elements / text.
- * Supported: MultipleChoice, TrueFalse, Multiselection, Ordering, FreeText
+ * Supported: MultipleChoice, TrueFalse, Multiselection, Ordering, FreeText, Matching
  */
 function detectFormat(questionText, optionEls) {
   const count = optionEls.length;
@@ -45,6 +45,9 @@ function detectFormat(questionText, optionEls) {
   const texts = Array.from(optionEls).map((el) =>
     el.textContent.trim().toLowerCase()
   );
+
+  const isMatching = optionEls.some(el => el.classList && el.classList.contains('match-row') || el.closest('.match-row'));
+  if (isMatching) return 'Matching';
 
   const isTF =
     count === 2 && texts.includes('true') && texts.includes('false');
@@ -83,19 +86,86 @@ function buildPayload(format, questionText, optionTexts) {
  * Apply answer highlight to matching option elements.
  * Highlights any option whose trimmed text is included in the AI answer.
  */
-function highlightAnswer(optionEls, answer) {
+function highlightAnswer(optionEls, answer, format) {
   const answerLower = answer.toLowerCase();
   let matched = false;
 
-  optionEls.forEach((el) => {
+  const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const lines = answerLower.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+
+  // Distinct colors for matching pairs
+  const matchingColors = [
+    '#00FF00', '#FF00FF', '#00FFFF', '#FFA500', '#FF4500',
+    '#8A2BE2', '#DC143C', '#1E90FF', '#32CD32', '#FFD700'
+  ];
+
+  optionEls.forEach((el, index) => {
     const text = el.textContent.trim().toLowerCase();
-    if (answerLower == text) {
-      el.style.outline = '4px solid #00FF00';
-      el.style.borderRadius = '4px';
-      el.style.transition = 'outline 0.2s ease';
+    if (!text) return;
+
+    let isMatch = false;
+    let matchedLineIndex = 0;
+
+    // 1. Exact match with the entire answer
+    if (answerLower === text) {
+      isMatch = true;
+      matchedLineIndex = 0;
+    }
+
+    if (!isMatch) {
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        let cleanLine = line.replace(/^([0-9]+[\.\)]|[\-\*]|option\s*[0-9]+[\.\)]?)\s*/, '').trim();
+
+        // 2. Exact match on the line or cleaned line
+        if (line === text || cleanLine === text) {
+          isMatch = true;
+          matchedLineIndex = i;
+          break;
+        }
+
+        // 3. Match by option index (e.g., "1", "1.", "1)", "option 1")
+        const stringIndex = `${index + 1}`;
+        if (line === stringIndex || line === `${stringIndex}.` || line === `${stringIndex})` || line === `option ${stringIndex}`) {
+          isMatch = true;
+          matchedLineIndex = i;
+          break;
+        }
+
+        // 4. Substring match with Unicode-aware word boundaries
+        if (text.length >= 2) {
+          let found = false;
+          try {
+            const regex = new RegExp(`(^|[^\\p{L}\\p{N}])${escapeRegex(text)}($|[^\\p{L}\\p{N}])`, 'iu');
+            if (regex.test(line) || regex.test(cleanLine)) found = true;
+          } catch (e) {
+            const fallbackRegex = new RegExp(`(^|\\W)${escapeRegex(text)}($|\\W)`, 'i');
+            if (fallbackRegex.test(line) || fallbackRegex.test(cleanLine)) found = true;
+          }
+          if (found) {
+            isMatch = true;
+            matchedLineIndex = i;
+            break;
+          }
+        }
+      }
+    }
+
+    if (isMatch) {
+      let highlightColor = '#00FF00';
+      if (format === 'Matching') {
+        highlightColor = matchingColors[matchedLineIndex % matchingColors.length];
+      }
+      applyHighlight(el, highlightColor);
       matched = true;
     }
   });
+
+  function applyHighlight(element, color) {
+    element.style.outline = `4px solid ${color}`;
+    element.style.borderRadius = '4px';
+    element.style.transition = 'outline 0.2s ease';
+  }
 
   return matched;
 }
@@ -157,7 +227,7 @@ async function solveQuestion() {
   const answer = response.answer;
   console.info('[AnswerIt] Answer:', answer);
 
-  const matched = highlightAnswer(optionEls, answer);
+  const matched = highlightAnswer(optionEls, answer, format);
 
   // Show an on-page toast with the answer
   showToast(answer, 'success', matched);

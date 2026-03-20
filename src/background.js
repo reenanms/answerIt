@@ -12,7 +12,10 @@ const MODEL_WATERFALL = [
 const SYSTEM_PROMPT =
   'You are an academic assistant. I will provide a question and options from a textbook. ' +
   'Your task is to return ONLY the correct answer text. If it is an ordering question, ' +
-  'provide the sequence. If it is free text, provide a concise answer. No conversational filler.';
+  'provide the sequence. If it is free text, provide a concise answer. ' +
+  'For a "Matching" question format, pair the terms with their definitions and return each pair on a new line separated by a hyphen (e.g., "Term - Definition"). ' +
+  'For multiple choice or multiselection, return EXACTLY the text of the correct option(s), ' +
+  'one per line. Do NOT include option numbers (like "1."), bullet points, or any conversational filler.';
 
 /**
  * Call one specific Gemini model.
