@@ -74,9 +74,9 @@ AnswerIt uses a JSON config to know which DOM elements contain questions and ans
 {
   "name": "McGraw-Hill Default",
   "selectors": {
-    "question": ".question-content, .q-text",
-    "options": ".answer-option, .choice-label",
-    "container": ".question-wrapper"
+    "question": ".prompt, .question-content, .q-text",
+    "options": ".choice-row, .match-prompt-label, .choice-item-wrapper, .answer-option, .choice-label",
+    "container": ".probe-container, .question-wrapper"
   }
 }
 ```

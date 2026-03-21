@@ -24,7 +24,7 @@ async function getConfig() {
           name: 'McGraw-Hill Default',
           selectors: {
             question: '.prompt, .question-content, .q-text',
-            options: '.choice-row, .match-row, .choice-item-wrapper, .answer-option, .choice-label',
+            options: '.choice-row, .match-prompt-label, .choice-item-wrapper, .answer-option, .choice-label',
             container: '.probe-container, .question-wrapper'
           }
         };

@@ -4,9 +4,9 @@ const DEFAULT_CONFIG = JSON.stringify(
   {
     name: 'McGraw-Hill Default',
     selectors: {
-      question: '.prompt',
-      options: '.choice-row',
-      container: '.probe-container'
+      question: '.prompt, .question-content, .q-text',
+      options: '.choice-row, .match-prompt-label, .choice-item-wrapper, .answer-option, .choice-label',
+      container: '.probe-container, .question-wrapper'
     }
   },
   null,
