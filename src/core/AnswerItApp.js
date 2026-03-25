@@ -1,8 +1,7 @@
 import { QuestionExtractor } from './QuestionExtractor.js';
 import { FormatDetector } from './FormatDetector.js';
 import { AnswerMatcher } from './AnswerMatcher.js';
-import { BaseHighlighter } from '../highlighter/BaseHighlighter.js';
-import { MatchingHighlighter } from '../highlighter/MatchingHighlighter.js';
+import { HighlighterFactory } from '../highlighter/HighlighterFactory.js';
 
 export class AnswerItApp {
     constructor(aiProvider, config) {
@@ -27,7 +26,7 @@ export class AnswerItApp {
 
             const { matched, matchedPairs } = this.matcher.match(optionEls, answer);
 
-            const highlighter = this.getHighlighter(format, this.config.autoAnswer);
+            const highlighter = HighlighterFactory.create(format, this.config.autoAnswer);
             highlighter.highlight(matchedPairs);
 
             this.showToast(answer, 'success', matched);
@@ -46,13 +45,6 @@ export class AnswerItApp {
             optionTexts.forEach((t, i) => { payload += `${i + 1}. ${t}\n`; });
         }
         return payload;
-    }
-
-    getHighlighter(format, autoAnswer) {
-        if (format === 'Matching') {
-            return new MatchingHighlighter(autoAnswer);
-        }
-        return new BaseHighlighter(autoAnswer);
     }
 
     showToast(message, type = 'success', matched = false) {

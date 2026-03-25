@@ -14,12 +14,7 @@ export class BaseHighlighter {
     }
 
     onMatch(element, lineIndex, matchedPairs) {
-        if (this.autoAnswer) {
-            const clickable = element.querySelector('input[type="radio"], input[type="checkbox"]') || element;
-            clickable.click();
-        } else {
-            this.applyHighlight(element, '#00FF00');
-        }
+        throw new Error('onMatch must be implemented by subclasses');
     }
 
     postProcess(matchedPairs) {

@@ -14,6 +14,7 @@ global.chrome = {
 
 import { FormatDetector } from '../src/core/FormatDetector.js';
 import { AnswerItApp } from '../src/core/AnswerItApp.js';
+import { QuestionFormat } from '../src/core/QuestionFormat.js';
 
 describe('answerIt refactored logic', () => {
     describe('FormatDetector', () => {
@@ -24,7 +25,7 @@ describe('answerIt refactored logic', () => {
 
         it('detects FreeText when no option elements', () => {
             const format = detector.detect('What is the capital of France?', []);
-            expect(format).toBe('FreeText');
+            expect(format).toBe(QuestionFormat.FreeText);
         });
 
         it('detects MultipleChoice when radio inputs are present', () => {
@@ -33,7 +34,7 @@ describe('answerIt refactored logic', () => {
         <div class="option"><input type="radio" /> London</div>
       `;
             const options = Array.from(document.querySelectorAll('.option'));
-            expect(detector.detect('What is the capital of France?', options)).toBe('MultipleChoice');
+            expect(detector.detect('What is the capital of France?', options)).toBe(QuestionFormat.MultipleChoice);
         });
 
         it('detects Multiselection when checkbox inputs are present', () => {
@@ -42,7 +43,7 @@ describe('answerIt refactored logic', () => {
         <div class="option"><input type="checkbox" /> London</div>
       `;
             const options = Array.from(document.querySelectorAll('.option'));
-            expect(detector.detect('Select all that apply:', options)).toBe('Multiselection');
+            expect(detector.detect('Select all that apply:', options)).toBe(QuestionFormat.Multiselection);
         });
 
         it('throws an error if no specific inputs or formats matched', () => {
@@ -61,14 +62,14 @@ describe('answerIt refactored logic', () => {
       `;
             const options = Array.from(document.querySelectorAll('.match-row'));
             const format = detector.detect('Match the following:', options);
-            expect(format).toBe('Matching');
+            expect(format).toBe(QuestionFormat.Matching);
         });
     });
 
     describe('AnswerItApp payload builder', () => {
         it('builds a payload for FreeText correctly', () => {
             const app = new AnswerItApp({}, { selectors: { question: 'q', options: 'o' } });
-            const payload = app.buildPayload('FreeText', 'Question 1?', []);
+            const payload = app.buildPayload(QuestionFormat.FreeText, 'Question 1?', []);
             expect(payload).toContain('Question Format: FreeText');
             expect(payload).toContain('Question 1?');
             expect(payload).not.toContain('Options:');
@@ -76,7 +77,7 @@ describe('answerIt refactored logic', () => {
 
         it('builds a payload for MultipleChoice correctly', () => {
             const app = new AnswerItApp({}, { selectors: { question: 'q', options: 'o' } });
-            const payload = app.buildPayload('MultipleChoice', 'Capital of France?', ['Paris', 'London']);
+            const payload = app.buildPayload(QuestionFormat.MultipleChoice, 'Capital of France?', ['Paris', 'London']);
             expect(payload).toContain('Question Format: MultipleChoice');
             expect(payload).toContain('Capital of France?');
             expect(payload).toContain('Options:');
