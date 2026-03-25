@@ -2,6 +2,7 @@ import { QuestionExtractor } from './QuestionExtractor.js';
 import { FormatDetector } from './FormatDetector.js';
 import { AnswerMatcher } from './AnswerMatcher.js';
 import { HighlighterFactory } from '../highlighter/HighlighterFactory.js';
+import { AnswererFactory } from '../answerer/AnswererFactory.js';
 
 export class AnswerItApp {
     constructor(aiProvider, config) {
@@ -24,8 +25,15 @@ export class AnswerItApp {
 
             const { matched, matchedPairs } = AnswerMatcher.match(optionEls, answer);
 
-            const highlighter = HighlighterFactory.create(format, this.config.autoAnswer);
-            highlighter.highlight(matchedPairs);
+            if (matched) {
+                const highlighter = HighlighterFactory.create(format);
+                highlighter.highlight(matchedPairs);
+
+                if (this.config.autoAnswer) {
+                    const answerer = AnswererFactory.create(format);
+                    answerer.answer(matchedPairs);
+                }
+            }
 
             this.showToast(answer, 'success', matched);
             return { success: true, answer };

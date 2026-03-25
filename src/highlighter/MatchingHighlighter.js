@@ -4,19 +4,16 @@ export class MatchingHighlighter extends BaseHighlighter {
     static canHandle(optionEls) {
         return optionEls.some((el) => el.classList && el.classList.contains('match-row') || el.closest('.match-row'));
     }
-    constructor(autoAnswer) {
-        super(autoAnswer);
+    constructor() {
+        super();
         this.matchingColors = [
-            '#00FF00', '#FF00FF', '#00FFFF', '#FFA500', '#FF4500',
-            '#8A2BE2', '#DC143C', '#1E90FF', '#32CD32', '#FFD700'
+            '#FF5733', '#33FF57', '#3357FF', '#F333FF', '#FF33F3', '#33FFF3'
         ];
     }
 
     onMatch(element, lineIndex, matchedPairs) {
-        if (!this.autoAnswer) {
-            const highlightColor = this.matchingColors[lineIndex % this.matchingColors.length];
-            this.applyHighlight(element, highlightColor);
-        }
+        const highlightColor = this.matchingColors[lineIndex % this.matchingColors.length];
+        this.applyHighlight(element, highlightColor);
     }
 
     postProcess(matchedPairs) {

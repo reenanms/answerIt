@@ -1,8 +1,4 @@
 export class BaseHighlighter {
-    constructor(autoAnswer) {
-        this.autoAnswer = autoAnswer;
-    }
-
     highlight(matchedPairs) {
         Object.entries(matchedPairs).forEach(([lineIndexStr, elements]) => {
             const lineIndex = parseInt(lineIndexStr, 10);
@@ -14,7 +10,7 @@ export class BaseHighlighter {
     }
 
     onMatch(element, lineIndex, matchedPairs) {
-        throw new Error('onMatch must be implemented by subclasses');
+        this.applyHighlight(element, '#00FF00');
     }
 
     postProcess(matchedPairs) {
