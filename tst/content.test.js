@@ -18,13 +18,8 @@ import { QuestionFormat } from '../src/core/QuestionFormat.js';
 
 describe('answerIt refactored logic', () => {
     describe('FormatDetector', () => {
-        let detector;
-        beforeEach(() => {
-            detector = new FormatDetector();
-        });
-
         it('detects FreeText when no option elements', () => {
-            const format = detector.detect('What is the capital of France?', []);
+            const format = FormatDetector.detect([]);
             expect(format).toBe(QuestionFormat.FreeText);
         });
 
@@ -34,7 +29,7 @@ describe('answerIt refactored logic', () => {
         <div class="option"><input type="radio" /> London</div>
       `;
             const options = Array.from(document.querySelectorAll('.option'));
-            expect(detector.detect('What is the capital of France?', options)).toBe(QuestionFormat.MultipleChoice);
+            expect(FormatDetector.detect(options)).toBe(QuestionFormat.MultipleChoice);
         });
 
         it('detects Multiselection when checkbox inputs are present', () => {
@@ -43,7 +38,7 @@ describe('answerIt refactored logic', () => {
         <div class="option"><input type="checkbox" /> London</div>
       `;
             const options = Array.from(document.querySelectorAll('.option'));
-            expect(detector.detect('Select all that apply:', options)).toBe(QuestionFormat.Multiselection);
+            expect(FormatDetector.detect(options)).toBe(QuestionFormat.Multiselection);
         });
 
         it('throws an error if no specific inputs or formats matched', () => {
@@ -52,7 +47,7 @@ describe('answerIt refactored logic', () => {
         <div class="option">London</div>
       `;
             const options = Array.from(document.querySelectorAll('.option'));
-            expect(() => detector.detect('What is...?', options)).toThrow('Could not identify the question format');
+            expect(() => FormatDetector.detect(options)).toThrow('Could not identify the question format');
         });
 
         it('detects Matching if elements contain matching specific classes', () => {
@@ -61,7 +56,7 @@ describe('answerIt refactored logic', () => {
         <div class="match-row">Option 2</div>
       `;
             const options = Array.from(document.querySelectorAll('.match-row'));
-            const format = detector.detect('Match the following:', options);
+            const format = FormatDetector.detect(options);
             expect(format).toBe(QuestionFormat.Matching);
         });
     });

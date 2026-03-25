@@ -1,6 +1,9 @@
 import { BaseHighlighter } from './BaseHighlighter.js';
 
 export class MatchingHighlighter extends BaseHighlighter {
+    static canHandle(optionEls) {
+        return optionEls.some((el) => el.classList && el.classList.contains('match-row') || el.closest('.match-row'));
+    }
     constructor(autoAnswer) {
         super(autoAnswer);
         this.matchingColors = [

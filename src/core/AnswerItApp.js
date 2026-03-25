@@ -8,15 +8,13 @@ export class AnswerItApp {
         this.aiProvider = aiProvider;
         this.config = config;
         this.extractor = new QuestionExtractor(config.selectors);
-        this.formatDetector = new FormatDetector();
-        this.matcher = new AnswerMatcher();
     }
 
     async solve() {
         this.showToast('Solving question...', 'loading');
         try {
             const { questionText, optionEls, optionTexts } = this.extractor.extract();
-            const format = this.formatDetector.detect(questionText, optionEls);
+            const format = FormatDetector.detect(optionEls);
 
             const payload = this.buildPayload(format, questionText, optionTexts);
             console.info('[AnswerIt] Format:', format);
@@ -24,7 +22,7 @@ export class AnswerItApp {
 
             const answer = await this.aiProvider.solve(payload);
 
-            const { matched, matchedPairs } = this.matcher.match(optionEls, answer);
+            const { matched, matchedPairs } = AnswerMatcher.match(optionEls, answer);
 
             const highlighter = HighlighterFactory.create(format, this.config.autoAnswer);
             highlighter.highlight(matchedPairs);

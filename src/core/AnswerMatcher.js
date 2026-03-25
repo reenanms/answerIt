@@ -1,5 +1,5 @@
 export class AnswerMatcher {
-    match(optionEls, answer) {
+    static match(optionEls, answer) {
         const answerLower = answer.toLowerCase();
         let matched = false;
 
