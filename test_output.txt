@@ -1,0 +1,52 @@
+
+> answerit@1.0.0 test
+> jest
+
+FAIL src/content.test.js
+  answerIt refactored logic
+    FormatDetector
+      ΓêÜ detects FreeText when no option elements (2 ms)
+      ΓêÜ detects TrueFalse when exactly two options are True and False (9 ms)
+      ΓêÜ detects MultipleChoice generally (2 ms)
+      ΓêÜ detects Matching if elements contain matching specific classes (2 ms)
+    AnswerItApp payload builder
+      ├ù builds a payload for FreeText correctly
+      ├ù builds a payload for MultipleChoice correctly
+
+  ΓùÅ answerIt refactored logic ΓÇ║ AnswerItApp payload builder ΓÇ║ builds a payload for FreeText correctly
+
+    TypeError: Cannot read properties of undefined (reading 'question')
+
+      1 | export class QuestionExtractor {
+      2 |     constructor(configSelectors) {
+    > 3 |         this.qSel = configSelectors.question;
+        |                                     ^
+      4 |         this.optSel = configSelectors.options;
+      5 |     }
+      6 |
+
+      at new question (src/core/QuestionExtractor.js:3:37)
+      at new AnswerItApp (src/core/AnswerItApp.js:10:26)
+      at Object.<anonymous> (src/content.test.js:64:25)
+
+  ΓùÅ answerIt refactored logic ΓÇ║ AnswerItApp payload builder ΓÇ║ builds a payload for MultipleChoice correctly
+
+    TypeError: Cannot read properties of undefined (reading 'question')
+
+      1 | export class QuestionExtractor {
+      2 |     constructor(configSelectors) {
+    > 3 |         this.qSel = configSelectors.question;
+        |                                     ^
+      4 |         this.optSel = configSelectors.options;
+      5 |     }
+      6 |
+
+      at new question (src/core/QuestionExtractor.js:3:37)
+      at new AnswerItApp (src/core/AnswerItApp.js:10:26)
+      at Object.<anonymous> (src/content.test.js:72:25)
+
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 4 passed, 6 total
+Snapshots:   0 total
+Time:        0.759 s, estimated 1 s
+Ran all test suites.

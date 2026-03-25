@@ -13,7 +13,7 @@
     "https://generativelanguage.googleapis.com/*"
   ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "dist/background.js"
   },
   "commands": {
     "solve-question": {
@@ -34,7 +34,7 @@
         "https://*.mheducation.com/*"
       ],
       "js": [
-        "content.js"
+        "dist/content.js"
       ],
       "css": [
         "style.css"

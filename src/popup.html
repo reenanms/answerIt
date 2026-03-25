@@ -37,10 +37,19 @@
   "name": "McGraw-Hill Default",
   "selectors": {
     "question": ".prompt, .question-content, .q-text",
-    "options": ".choice-row, .match-prompt-label, .choice-item-wrapper, .answer-option, .choice-label",
+    "options": ".choice-row, .match-prompt-label, .choice-item-wrapper:not(.-placeholder), .answer-option, .choice-label",
     "container": ".probe-container, .question-wrapper"
   }
 }' spellcheck="false"></textarea>
+    </section>
+
+    <!-- Auto Answer Setting -->
+    <section class="form-section flex-row"
+      style="display: flex; align-items: center; margin-top: -10px; margin-bottom: 15px;">
+      <input type="checkbox" id="autoAnswerToggle"
+        style="margin-right: 8px; width: 16px; height: 16px; cursor: pointer;" />
+      <label for="autoAnswerToggle" class="form-label" style="margin: 0; cursor: pointer;">Enable Auto-Answer
+        (Beta)</label>
     </section>
 
     <!-- Actions -->

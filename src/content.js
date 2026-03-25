@@ -1,310 +1,42 @@
-// Content Script — scrapes questions, detects format, highlights answers
+import { BackgroundAIProvider } from './ai/BackgroundAIProvider.js';
+import { AnswerItApp } from './core/AnswerItApp.js';
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-/**
- * Read the selector config from storage.
- * Falls back to the McGraw-Hill default config.
- */
 async function getConfig() {
   return new Promise((resolve) => {
-    chrome.storage.local.get(['selectorConfig'], (result) => {
+    chrome.storage.local.get(['selectorConfig', 'autoAnswer'], (result) => {
       let config;
       try {
-        config = result.selectorConfig
-          ? JSON.parse(result.selectorConfig)
-          : null;
+        config = result.selectorConfig ? JSON.parse(result.selectorConfig) : null;
       } catch {
         config = null;
       }
 
-      // Default McGraw-Hill config
       if (!config || !config.selectors) {
         config = {
           name: 'McGraw-Hill Default',
           selectors: {
             question: '.prompt, .question-content, .q-text',
-            options: '.choice-row, .match-prompt-label, .choice-item-wrapper, .answer-option, .choice-label',
+            options: '.choice-row, .match-prompt-label, .choice-item-wrapper:not(.-placeholder), .answer-option, .choice-label',
             container: '.probe-container, .question-wrapper'
           }
         };
       }
+      config.autoAnswer = !!result.autoAnswer;
       resolve(config);
     });
   });
 }
 
-/**
- * Detect the question format based on available DOM elements / text.
- * Supported: MultipleChoice, TrueFalse, Multiselection, Ordering, FreeText, Matching
- */
-function detectFormat(questionText, optionEls) {
-  const count = optionEls.length;
-  if (count === 0) return 'FreeText';
-
-  const texts = Array.from(optionEls).map((el) =>
-    el.textContent.trim().toLowerCase()
-  );
-
-  const isMatching = optionEls.some(el => el.classList && el.classList.contains('match-row') || el.closest('.match-row'));
-  if (isMatching) return 'Matching';
-
-  const isTF =
-    count === 2 && texts.includes('true') && texts.includes('false');
-  if (isTF) return 'TrueFalse';
-
-  // Ordering hint: options often contain "1." / "a." / ordinal markers
-  const hasOrdinals = texts.some((t) => /^\d+[.)]\s/.test(t));
-  if (hasOrdinals) return 'Ordering';
-
-  // Multiselection hint: look for checkboxes
-  const hasCheckboxes = optionEls[0]
-    ?.closest('form, fieldset')
-    ?.querySelector('input[type="checkbox"]');
-  if (hasCheckboxes) return 'Multiselection';
-
-  return 'MultipleChoice';
-}
-
-/**
- * Build a formatted payload string to send to Gemini.
- */
-function buildPayload(format, questionText, optionTexts) {
-  let payload = `Question Format: ${format}\n\nQuestion:\n${questionText}\n`;
-
-  if (optionTexts.length > 0) {
-    payload += '\nOptions:\n';
-    optionTexts.forEach((t, i) => {
-      payload += `${i + 1}. ${t}\n`;
-    });
-  }
-
-  return payload;
-}
-
-/**
- * Apply answer highlight to matching option elements.
- * Highlights any option whose trimmed text is included in the AI answer.
- */
-function highlightAnswer(optionEls, answer, format) {
-  const answerLower = answer.toLowerCase();
-  let matched = false;
-
-  const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const lines = answerLower.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-
-  // Distinct colors for matching pairs
-  const matchingColors = [
-    '#00FF00', '#FF00FF', '#00FFFF', '#FFA500', '#FF4500',
-    '#8A2BE2', '#DC143C', '#1E90FF', '#32CD32', '#FFD700'
-  ];
-
-  optionEls.forEach((el, index) => {
-    const text = el.textContent.trim().toLowerCase();
-    if (!text) return;
-
-    let isMatch = false;
-    let matchedLineIndex = 0;
-
-    // 1. Exact match with the entire answer
-    if (answerLower === text) {
-      isMatch = true;
-      matchedLineIndex = 0;
-    }
-
-    if (!isMatch) {
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        let cleanLine = line.replace(/^([0-9]+[\.\)]|[\-\*]|option\s*[0-9]+[\.\)]?)\s*/, '').trim();
-
-        // 2. Exact match on the line or cleaned line
-        if (line === text || cleanLine === text) {
-          isMatch = true;
-          matchedLineIndex = i;
-          break;
-        }
-
-        // 3. Match by option index (e.g., "1", "1.", "1)", "option 1")
-        const stringIndex = `${index + 1}`;
-        if (line === stringIndex || line === `${stringIndex}.` || line === `${stringIndex})` || line === `option ${stringIndex}`) {
-          isMatch = true;
-          matchedLineIndex = i;
-          break;
-        }
-
-        // 4. Substring match with Unicode-aware word boundaries
-        if (text.length >= 2) {
-          let found = false;
-          try {
-            const regex = new RegExp(`(^|[^\\p{L}\\p{N}])${escapeRegex(text)}($|[^\\p{L}\\p{N}])`, 'iu');
-            if (regex.test(line) || regex.test(cleanLine)) found = true;
-          } catch (e) {
-            const fallbackRegex = new RegExp(`(^|\\W)${escapeRegex(text)}($|\\W)`, 'i');
-            if (fallbackRegex.test(line) || fallbackRegex.test(cleanLine)) found = true;
-          }
-          if (found) {
-            isMatch = true;
-            matchedLineIndex = i;
-            break;
-          }
-        }
-      }
-    }
-
-    if (isMatch) {
-      let highlightColor = '#00FF00';
-      if (format === 'Matching') {
-        highlightColor = matchingColors[matchedLineIndex % matchingColors.length];
-      }
-      applyHighlight(el, highlightColor);
-      matched = true;
-    }
-  });
-
-  function applyHighlight(element, color) {
-    element.style.outline = `4px solid ${color}`;
-    element.style.borderRadius = '4px';
-    element.style.transition = 'outline 0.2s ease';
-  }
-
-  return matched;
-}
-
-// ─── Main Solve Logic ─────────────────────────────────────────────────────────
-
-async function solveQuestion() {
-  showToast('Solving question...', 'loading');
-
-  const config = await getConfig();
-  const { question: qSel, options: optSel } = config.selectors;
-
-  // Grab question text
-  const questionEl = document.querySelector(qSel);
-  if (!questionEl) {
-    console.warn('[AnswerIt] Question element not found. Selector:', qSel);
-    const err = 'Question element not found on this page.';
-    showToast(err, 'error');
-    return { success: false, error: err };
-  }
-  const questionText = questionEl.innerText.trim();
-
-  // Grab options
-  const optionEls = Array.from(document.querySelectorAll(optSel));
-  const optionTexts = optionEls.map((el) => el.textContent.trim());
-
-  const format = detectFormat(questionText, optionEls);
-  const questionPayload = buildPayload(format, questionText, optionTexts);
-
-  console.info('[AnswerIt] Format:', format);
-  console.info('[AnswerIt] Payload:\n', questionPayload);
-
-  // Retrieve API key
-  const { apiKey } = await new Promise((resolve) =>
-    chrome.storage.local.get(['apiKey'], resolve)
-  );
-
-  if (!apiKey) {
-    const err = 'API key not set. Please configure it in the extension popup.';
-    showToast(err, 'error');
-    return { success: false, error: err };
-  }
-
-  // Ask background script to call Gemini
-  const response = await new Promise((resolve) =>
-    chrome.runtime.sendMessage(
-      { type: 'SOLVE_QUESTION', apiKey, questionPayload },
-      resolve
-    )
-  );
-
-  if (!response?.success) {
-    console.error('[AnswerIt] AI error:', response?.error);
-    const err = response?.error ?? 'Unknown AI error.';
-    showToast(err, 'error');
-    return { success: false, error: err };
-  }
-
-  const answer = response.answer;
-  console.info('[AnswerIt] Answer:', answer);
-
-  const matched = highlightAnswer(optionEls, answer, format);
-
-  // Show an on-page toast with the answer
-  showToast(answer, 'success', matched);
-
-  return { success: true, answer };
-}
-
-// ─── Toast Notification ───────────────────────────────────────────────────────
-
-function showToast(message, type = 'success', matched = false) {
-  // Remove existing toast if any
-  const existing = document.getElementById('ai-solver-toast');
-  if (existing) existing.remove();
-
-  const toast = document.createElement('div');
-  toast.id = 'ai-solver-toast';
-
-  let bg = '#1a1a2e';
-  let border = '#00FF00';
-  let prefix = '';
-
-  if (type === 'loading') {
-    prefix = '⏳ ';
-    bg = '#222222';
-    border = '#007BFF';
-  } else if (type === 'error') {
-    prefix = '❌ Error: ';
-    bg = '#3d1010';
-    border = '#FF3333';
-  } else if (type === 'success') {
-    prefix = matched ? '✅ Answer: ' : '💡 AI Answer: ';
-    bg = matched ? '#1a1a2e' : '#2d1b00';
-    border = matched ? '#00FF00' : '#FFA500';
-  }
-
-  toast.textContent = `${prefix}${message}`;
-
-  Object.assign(toast.style, {
-    position: 'fixed',
-    bottom: '24px',
-    right: '24px',
-    zIndex: '2147483647',
-    maxWidth: '420px',
-    padding: '14px 18px',
-    background: bg,
-    color: '#fff',
-    border: `2px solid ${border}`,
-    borderRadius: '10px',
-    fontSize: '14px',
-    fontFamily: 'system-ui, sans-serif',
-    boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
-    lineHeight: '1.5',
-    transition: 'opacity 0.4s ease'
-  });
-
-  document.body.appendChild(toast);
-
-  // Auto-dismiss after 8 seconds, except for loading which stays until replaced
-  if (type !== 'loading') {
-    setTimeout(() => {
-      toast.style.opacity = '0';
-      setTimeout(() => toast.remove(), 400);
-    }, 8000);
-  }
-}
-
-// ─── Message Listener ─────────────────────────────────────────────────────────
-
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === 'TRIGGER_SOLVE') {
-    solveQuestion()
-      .then(sendResponse)
-      .catch((err) => {
-        console.error('[AnswerIt] Unexpected error:', err);
-        showToast(err.message || String(err), 'error');
-        sendResponse({ success: false, error: err.message });
-      });
-    return true; // keep channel open
+    getConfig().then(config => {
+      const provider = new BackgroundAIProvider();
+      const app = new AnswerItApp(provider, config);
+      return app.solve();
+    }).then(sendResponse).catch(err => {
+      console.error('[AnswerIt] Unexpected error:', err);
+      sendResponse({ success: false, error: err.message });
+    });
+    return true;
   }
 });

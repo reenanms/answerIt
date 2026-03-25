@@ -5,7 +5,7 @@ const DEFAULT_CONFIG = JSON.stringify(
     name: 'McGraw-Hill Default',
     selectors: {
       question: '.prompt, .question-content, .q-text',
-      options: '.choice-row, .match-prompt-label, .choice-item-wrapper, .answer-option, .choice-label',
+      options: '.choice-row, .match-prompt-label, .choice-item-wrapper:not(.-placeholder), .answer-option, .choice-label',
       container: '.probe-container, .question-wrapper'
     }
   },
@@ -20,6 +20,7 @@ const selectorConfigTextarea = document.getElementById('selectorConfig');
 const saveBtn = document.getElementById('saveBtn');
 const solveBtn = document.getElementById('solveBtn');
 const statusMsg = document.getElementById('statusMsg');
+const autoAnswerToggle = document.getElementById('autoAnswerToggle');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -46,9 +47,10 @@ function isValidJson(str) {
 
 // ─── Load Saved Settings ──────────────────────────────────────────────────────
 
-chrome.storage.local.get(['apiKey', 'selectorConfig'], (result) => {
+chrome.storage.local.get(['apiKey', 'selectorConfig', 'autoAnswer'], (result) => {
   if (result.apiKey) apiKeyInput.value = result.apiKey;
   selectorConfigTextarea.value = result.selectorConfig || DEFAULT_CONFIG;
+  autoAnswerToggle.checked = !!result.autoAnswer;
 });
 
 // ─── Toggle API Key Visibility ────────────────────────────────────────────────
@@ -65,6 +67,8 @@ saveBtn.addEventListener('click', () => {
   const apiKey = apiKeyInput.value.trim();
   const configStr = selectorConfigTextarea.value.trim();
 
+  const autoAnswer = autoAnswerToggle.checked;
+
   if (!apiKey) {
     showStatus('⚠️ Please enter your API key before saving.', 'warn');
     return;
@@ -75,7 +79,7 @@ saveBtn.addEventListener('click', () => {
     return;
   }
 
-  chrome.storage.local.set({ apiKey, selectorConfig: configStr }, () => {
+  chrome.storage.local.set({ apiKey, selectorConfig: configStr, autoAnswer }, () => {
     showStatus('✅ Settings saved successfully!', 'success');
   });
 });
@@ -85,6 +89,8 @@ saveBtn.addEventListener('click', () => {
 solveBtn.addEventListener('click', async () => {
   const apiKey = apiKeyInput.value.trim();
   const configStr = selectorConfigTextarea.value.trim();
+
+  const autoAnswer = autoAnswerToggle.checked;
 
   if (!apiKey) {
     showStatus('⚠️ API key is required. Please enter your Google AI Studio key.', 'warn');
@@ -98,7 +104,7 @@ solveBtn.addEventListener('click', async () => {
 
   // Save current settings first
   await new Promise((resolve) =>
-    chrome.storage.local.set({ apiKey, selectorConfig: configStr }, resolve)
+    chrome.storage.local.set({ apiKey, selectorConfig: configStr, autoAnswer }, resolve)
   );
 
   // Get the active tab
