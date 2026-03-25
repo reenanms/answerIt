@@ -10,10 +10,7 @@ export class MatchingHighlighter extends BaseHighlighter {
     }
 
     onMatch(element, lineIndex, matchedPairs) {
-        if (this.autoAnswer) {
-            if (!matchedPairs[lineIndex]) matchedPairs[lineIndex] = [];
-            matchedPairs[lineIndex].push(element);
-        } else {
+        if (!this.autoAnswer) {
             const highlightColor = this.matchingColors[lineIndex % this.matchingColors.length];
             this.applyHighlight(element, highlightColor);
         }

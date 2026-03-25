@@ -1,5 +1,6 @@
 import { QuestionExtractor } from './QuestionExtractor.js';
 import { FormatDetector } from './FormatDetector.js';
+import { AnswerMatcher } from './AnswerMatcher.js';
 import { BaseHighlighter } from '../highlighter/BaseHighlighter.js';
 import { MatchingHighlighter } from '../highlighter/MatchingHighlighter.js';
 
@@ -9,6 +10,7 @@ export class AnswerItApp {
         this.config = config;
         this.extractor = new QuestionExtractor(config.selectors);
         this.formatDetector = new FormatDetector();
+        this.matcher = new AnswerMatcher();
     }
 
     async solve() {
@@ -23,8 +25,10 @@ export class AnswerItApp {
 
             const answer = await this.aiProvider.solve(payload);
 
+            const { matched, matchedPairs } = this.matcher.match(optionEls, answer);
+
             const highlighter = this.getHighlighter(format, this.config.autoAnswer);
-            const matched = highlighter.process(optionEls, answer);
+            highlighter.highlight(matchedPairs);
 
             this.showToast(answer, 'success', matched);
             return { success: true, answer };
