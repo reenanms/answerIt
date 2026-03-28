@@ -22,6 +22,13 @@
         "mac": "Command+Shift+S"
       },
       "description": "Trigger the 'Solve Question' action"
+    },
+    "submit-and-next": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+K",
+        "mac": "Command+Shift+K"
+      },
+      "description": "Submit the current answer"
     }
   },
   "action": {

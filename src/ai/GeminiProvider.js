@@ -1,4 +1,5 @@
 import { AIProvider } from './AIProvider.js';
+import { Logger } from '../utils/Logger.js';
 
 export class GeminiProvider extends AIProvider {
     constructor(apiKey) {
@@ -18,12 +19,12 @@ export class GeminiProvider extends AIProvider {
     async solve(payload) {
         for (const model of this.models) {
             try {
-                console.info(`[AnswerIt] Trying model: ${model}`);
+                Logger.info(`Trying model: ${model}`);
                 return await this._callModel(model, payload);
             } catch (err) {
                 if (err.status === 429) {
                     const waitMs = err.retryAfterMs || 5000;
-                    console.warn(`[AnswerIt] 429 on ${model}. Waiting ${waitMs}ms before next model…`);
+                    Logger.warn(`429 on ${model}. Waiting ${waitMs}ms before next model…`);
                     await new Promise((r) => setTimeout(r, waitMs));
                 } else {
                     throw new Error(`Gemini API error ${err.status}: ${err.message}`);
